@@ -1,0 +1,5 @@
+1;Ion;Popescu
+33;Mara;Merlusca
+2;Ana;Ionescu
+3;Vasile;Mihai
+12;Mara;Merlusca
