@@ -1,7 +1,11 @@
 package repository;
-
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import domain.Entity;
 import domain.validators.ValidationException;
+
 /**
  * CRUD operations repository interface
  * defines the standard operations for data storage
@@ -53,4 +57,23 @@ public interface Repository<ID, E extends Entity<ID>> {
      * @throws IllegalArgumentException if the given entity is null
      */
     E update(E entity) throws ValidationException; //returneaza null daca s a actualizat si entitatea daca id ul nu exista
+
+    /**
+     * @param p the condition that the returned entities satisfy
+     * @return a new list with the entities that satisfy p
+     * @throws IllegalArgumentException if p is null.
+     */
+    default List<E> findAll(Predicate<E> p){
+        if(p == null){
+            throw new IllegalArgumentException("Filtrul nu poate fi nul");
+
+        }
+        //.findAll returneaza un Iterable deci folosim .spliterator() pentru a sparge acel iterable pt a putea folosi element cu element in stream
+        //dam false ca al doilea parametru pt aprocesa elementele secvential, unul dupa altul, nu in paralel
+        return StreamSupport.stream(findAll().spliterator(), false)
+                .filter(p)
+                //filter preia predicatul si aplica metoda test pt fiecare entitate. daca rezultatul e fals nu e colectat la raspuns
+                .collect(Collectors.toList());
+                //pt toate entitatile care au dat true la filtrare le colectam intr un arraylist
+    }
 }

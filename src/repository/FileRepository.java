@@ -10,30 +10,23 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public abstract class AbstractFileRepository<ID, E extends Entity<ID>> extends InMemoryRepository<ID, E> {
-    private final String fileName;
+import java.io.*;
+import java.util.function.Function;
 
-    public AbstractFileRepository(String fileName, Validator<E> validator){
+
+public class FileRepository<ID, E extends Entity<ID>> extends InMemoryRepository<ID, E> {
+    private final String fileName;
+    private final Function<String, E> extractEntity;
+    private final Function<E,String> createEntityAsString;
+
+    public FileRepository(String fileName, Validator<E> validator, Function<String, E> extractEntity, Function<E, String> createEntityAsString){
         super(validator);
         this.fileName = fileName;
+        this.extractEntity = extractEntity;
+        this.createEntityAsString = createEntityAsString;
         loadData();
 
     }
-    /**
-     * creates an entity from a line of the file
-     *
-     * @param line - a line of the file
-     * @return the entity described by the line
-     */
-    public abstract E extractEntity(String line);
-
-    /**
-     * converts an entity into a line of the file
-     *
-     * @param entity - the entity to be converted
-     * @return the line of text that describes the entity
-     */
-    public abstract String createEntityAsString(E entity);
 
     /**
      * reads all the lines of the file and saves the entities in memory;
@@ -51,7 +44,7 @@ public abstract class AbstractFileRepository<ID, E extends Entity<ID>> extends I
                     continue;
 
                 try {
-                    E entity = extractEntity(line);
+                    E entity = extractEntity.apply(line);
                     super.save(entity);
                 } catch (NumberFormatException | ArrayIndexOutOfBoundsException | java.time.format.DateTimeParseException | ValidationException e) {
                     ///prindem liniile corupte
@@ -73,7 +66,7 @@ public abstract class AbstractFileRepository<ID, E extends Entity<ID>> extends I
     private void writeToFile() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
             for (E entity : findAll()) {
-                writer.write(createEntityAsString(entity));
+                writer.write(createEntityAsString.apply(entity));
                 writer.newLine();
             }
         } catch (IOException e) {

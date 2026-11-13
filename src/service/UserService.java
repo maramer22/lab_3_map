@@ -76,4 +76,15 @@ public class UserService {
     public Iterable<User> getAllUsers(){
         return repository.findAll();
     }
+
+    /**
+     *
+     *
+     * @param filter criteriul de filtrare
+     * @return o lista cu utilizatorii care trec de filtru
+     */
+    public Iterable<User> filterUsers(java.util.function.Predicate<User> filter) {
+        return repository.findAll(filter);
+    }
+
 }

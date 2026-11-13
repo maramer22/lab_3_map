@@ -1,5 +1,7 @@
 import domain.validators.FriendshipValidator;
 import domain.validators.UserValidator;
+import domain.validators.ValidationException;
+import domain.validators.Validator;
 import repository.RepositoryFactory;
 import repository.Repository;
 import domain.User;
@@ -27,6 +29,12 @@ Main {
      */
     public static void main(String[] args) {
         UserValidator userValidator = new UserValidator();
+        Validator<User> validatorLambda = (User u) -> {
+            if (u.getFirstName().length() < 2 || u.getLastName().length() < 2) {
+                throw new ValidationException("Prenumele si numele trebuie sa aiba minim 2 caractere!\n");
+            }
+        };
+        Validator<User> validatorComplet = userValidator.andThen(validatorLambda);
         FriendshipValidator friendshipValidator = new FriendshipValidator();
 
         try {
@@ -34,7 +42,7 @@ Main {
             RepositoryFactory factory = new RepositoryFactory();
 
             // Create repositories based on factory configuration
-            Repository<Long, User> userRepository = factory.createUtilizatorRepository(userValidator);
+            Repository<Long, User> userRepository = factory.createUtilizatorRepository(validatorComplet);
             Repository<Tuple<Long, Long>, Friendship> friendshipRepository = factory.createPrietenieRepository(friendshipValidator);
 
             // Wire the repositories to the business logic (Services)

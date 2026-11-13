@@ -1,5 +1,6 @@
 package ui;
 
+import domain.CriteriiUtilizator;
 import domain.Friendship;
 import domain.User;
 import domain.validators.ValidationException;
@@ -47,6 +48,7 @@ public class Console {
         System.out.println("6. Afiseaza toate prieteniile\n");
         System.out.println("7. Afiseaza numarul de comunitati\n");
         System.out.println("8. Afiaeaza cea mai sociabila comunitate\n");
+        System.out.println("9. Cauta utilizator dupa prima litera si nume de familie");
         System.out.println("0. Exit\n");
         System.out.print("Alege o optiune: ");
 
@@ -89,6 +91,9 @@ public class Console {
                         break;
                     case "8":
                         printMostSociableCommunity();
+                        break;
+                    case "9":
+                        filterUsersAndUi();
                         break;
                     default:
                         System.out.println("Optiune invalida!");
@@ -197,6 +202,21 @@ public class Console {
         System.out.println(mostSociable);
 
 
+    }
+
+    private void filterUsersAndUi(){
+        System.out.println("Introdu cu ce litera/prefix sa inceapa prenumele: ");
+        String prefix = scanner.nextLine();
+        System.out.println("Introdu numele de familie: ");
+        String lastName = scanner.nextLine();
+
+        java.util.function.Predicate<User> p1 = CriteriiUtilizator.firstNameStartsWith(prefix);
+        java.util.function.Predicate<User> p2 = CriteriiUtilizator.lastNameEquals(lastName);
+        java.util.function.Predicate<User> filtruCombinat = p1.and(p2);
+        Iterable<User> rezultate = userService.filterUsers(filtruCombinat);
+
+        System.out.println("Rezultatele cautarii: ");
+        rezultate.forEach(u-> System.out.println("ID: " + u.getID() + ",Nume: " + u.getLastName() + ", Prenume: " + u.getFirstName()));
     }
 }
 

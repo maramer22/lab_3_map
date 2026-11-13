@@ -7,6 +7,13 @@ import domain.validators.Validator;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
+
+import java.util.Map;
+import java.util.HashMap;
+import java.util.function.Supplier;
+
+import java.util.function.Function;
+
 /**
  * simple Factory class responsible for creating repository instances
  * based on the configuration provided in the config.properties file
@@ -42,22 +49,67 @@ public class RepositoryFactory {
 
         RepositoryType repoType = RepositoryType.valueOf(type); //transformam textul simplu in tipul explicit definit mai jos
 
-        switch (repoType) {
-            case FILE:
-                String usersFile = properties.getProperty("users.file"); //citeste din configurari calea catre fisierul de users
-                return new UserFileRepo(usersFile, validator); //instantiaza repoul de fisier
-            case DATABASE:
-                return new UserDbRepository(
-                        properties.getProperty("db.url"),
-                        properties.getProperty("db.user"),
-                        properties.getProperty("db.password"),
-                        validator
-                );
-            case MEMORY:
-                return new InMemoryRepository<>(validator);
-            default:
-                throw new IllegalArgumentException("Tip de repository necunoscut!");
+        //facem un dictionar de suppliers
+        Map<RepositoryType, Supplier<Repository<Long,User>>> creators = new HashMap<>();
+        //asociem fiecarei chei expr lambda
+        creators.put(RepositoryType.MEMORY, () -> new InMemoryRepository<>(validator));
+
+        //pt FILE
+        creators.put(RepositoryType.FILE, () -> {
+            String usersFile = properties.getProperty("users.file");
+            //return new UserFileRepo(usersFile, validator);
+            Function<String, User> userExtractor = (String line) ->{
+                String[] parts = line.split(";",-1);
+                Long id = Long.parseLong(parts[0]);
+                User user = new User(parts[1], parts[2]);
+                user.setID(id);
+                return user;
+            };
+
+            Function<User, String> userSerializer = (User u) -> {
+                return u.getID() + ";" + u.getFirstName() + ";" + u.getLastName();
+            };
+
+            return new FileRepository<>(usersFile, validator, userExtractor, userSerializer);
+        });
+
+        //pt baza de date
+        creators.put(RepositoryType.DATABASE, () -> new UserDbRepository(
+                properties.getProperty("db.url"),
+                properties.getProperty("db.user"),
+                properties.getProperty("db.password"),
+                validator
+        ));
+
+        //luama furnizorul corespunzator din dictionar
+        Supplier<Repository<Long, User>> creator = creators.get(repoType);
+
+        if (creator == null) {
+            throw new IllegalArgumentException("Tip de repository necunoscut!");
         }
+
+        return creator.get(); //executam lambda su fabricam obiectul curent
+
+
+
+
+
+//        switch (repoType) {
+//            case FILE:
+//                String usersFile = properties.getProperty("users.file"); //citeste din configurari calea catre fisierul de users
+//                return new UserFileRepo(usersFile, validator); //instantiaza repoul de fisier
+//            case DATABASE:
+//                return new UserDbRepository(
+//                        properties.getProperty("db.url"),
+//                        properties.getProperty("db.user"),
+//                        properties.getProperty("db.password"),
+//                        validator
+//                );
+//            case MEMORY:
+//                return new InMemoryRepository<>(validator);
+//            default:
+//                throw new IllegalArgumentException("Tip de repository necunoscut!");
+//        }
     }
     /**
      * creates and returns a repository for Friendship entities based on the configured repository type
@@ -74,23 +126,58 @@ public class RepositoryFactory {
         }
 
         RepositoryType repoType = RepositoryType.valueOf(type);
+        java.util.Map<RepositoryType, java.util.function.Supplier<Repository<Tuple<Long, Long>, Friendship>>> creators = new java.util.HashMap<>();
 
-        switch (repoType) {
-            case FILE:
-                String friendshipsFile = properties.getProperty("friendships.file");
-                return new FriendshipFileRepo(friendshipsFile, validator);
-            case DATABASE:
-                return new FriendshipDbRepository(
-                        properties.getProperty("db.url"),
-                        properties.getProperty("db.user"),
-                        properties.getProperty("db.password"),
-                        validator
-                );
-            case MEMORY:
-                return new InMemoryRepository<>(validator);
-            default:
-                throw new IllegalArgumentException("Tip de repository necunoscut!");
+        creators.put(RepositoryType.MEMORY, () -> new InMemoryRepository<>(validator));
+
+        creators.put(RepositoryType.DATABASE, () -> new FriendshipDbRepository(
+                properties.getProperty("db.url"),
+                properties.getProperty("db.user"),
+                properties.getProperty("db.password"),
+                validator
+        ));
+
+        creators.put(RepositoryType.FILE, () -> {
+            String friendshipsFile = properties.getProperty("friendships.file");
+
+            java.util.function.Function<String, Friendship> friendshipExtractor = (String line) -> {
+                String[] parts = line.split(";");
+                Long idUser1 = Long.parseLong(parts[0]);
+                Long idUser2 = Long.parseLong(parts[1]);
+                java.time.LocalDateTime date = java.time.LocalDateTime.parse(parts[2]);
+                return new Friendship(idUser1, idUser2, date);
+            };
+
+            java.util.function.Function<Friendship, String> friendshipSerializer = (Friendship f) -> {
+                return f.getIdUser1() + ";" + f.getIdUser2() + ";" + f.getDate();
+            };
+            return new FileRepository<>(friendshipsFile, validator, friendshipExtractor, friendshipSerializer);
+        });
+
+        java.util.function.Supplier<Repository<Tuple<Long, Long>, Friendship>> creator = creators.get(repoType);
+
+        if (creator == null) {
+            throw new IllegalArgumentException("Tip de repository necunoscut!");
         }
+
+        return creator.get();
+
+//        switch (repoType) {
+//            case FILE:
+//                String friendshipsFile = properties.getProperty("friendships.file");
+//                return new FriendshipFileRepo(friendshipsFile, validator);
+//            case DATABASE:
+//                return new FriendshipDbRepository(
+//                        properties.getProperty("db.url"),
+//                        properties.getProperty("db.user"),
+//                        properties.getProperty("db.password"),
+//                        validator
+//                );
+//            case MEMORY:
+//                return new InMemoryRepository<>(validator);
+//            default:
+//                throw new IllegalArgumentException("Tip de repository necunoscut!");
+//        }
     }
 
 
