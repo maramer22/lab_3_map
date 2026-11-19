@@ -34,11 +34,12 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
      * @throws IllegalArgumentException if the given ID is null
      */
     @Override
-    public E findOne(ID id){
+    public java.util.Optional<E> findOne(ID id){
         if ( id == null) {
             throw new IllegalArgumentException("ID-ul nu poate fi null!");
         }
-        return entities.get(id);
+        //ofNullable creeaza ca o cutie plina daca gaseste id ul , daca nu una goala
+        return java.util.Optional.ofNullable(entities.get(id));
 
     }
     /**
@@ -61,7 +62,7 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
      * @throws ValidationException      if the entity does not pass the validation rules
      */
     @Override
-    public E save(E entity) throws ValidationException{
+    public java.util.Optional<E> save(E entity) throws ValidationException{
         if(entity == null){
             throw new IllegalArgumentException("Entitatea nu poate fi null!");
         }
@@ -69,12 +70,11 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
 
         //daca id-ul este luat
         if(entities.containsKey(entity.getID())){
-            return entity;
+            return java.util.Optional.of(entity); //daca id ul exista deja, returnam entitatea
         }
 
-        //daca nu, punem in memorie obicetul
         entities.put(entity.getID(), entity);
-        return null; //am salvat cu succes
+        return java.util.Optional.empty(); //daca nu eturnam Optional gol
 
     }
     /**
@@ -85,12 +85,11 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
      * @throws IllegalArgumentException if the given ID is null
      */
     @Override
-    public E delete(ID id){
+    public java.util.Optional<E> delete(ID id){
         if (id == null){
             throw new IllegalArgumentException("ID-ul nu poate fi null");
         }
-        //remove() sterge si returneaza si ce a sters
-        return entities.remove(id);
+        return java.util.Optional.ofNullable(entities.remove(id));
     }
     /**
      * validates and updates an existing entity in memory
@@ -102,16 +101,16 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
      * @throws ValidationException      if the entity does not pass the validation rules
      */
     @Override
-    public E update(E entity) throws ValidationException{
+    public java.util.Optional<E> update(E entity) throws ValidationException{
         if ( entity == null){
             throw new IllegalArgumentException("Entitatea nu poate fi null");
         }
         validator.validate(entity);
         if(entities.containsKey(entity.getID())){
             entities.put(entity.getID(),entity);
-            return null;//a fost updatat cu succes
+            return java.util.Optional.empty();//a fost updatat cu succes
         }
-        return entity; //in caz ca nu a gasit id ul cerut
+        return java.util.Optional.of(entity); //in caz ca nu a gasit id ul cerut
     }
 
 

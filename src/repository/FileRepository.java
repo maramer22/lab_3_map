@@ -35,23 +35,23 @@ public class FileRepository<ID, E extends Entity<ID>> extends InMemoryRepository
      * @throws RuntimeException if the file cannot be read
      */
     private void loadData() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
-            String line;
-            int lineNumber = 0;
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (line.isBlank())
-                    continue;
+        java.nio.file.Path path = java.nio.file.Paths.get(fileName);
+        try {
+            //ia fisierul si pune toate randurile in lines
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(path);
+            java.util.stream.IntStream.range(0, lines.size()).forEach(i -> {
+                String line = lines.get(i);
+                if (line.isBlank()) return;
 
                 try {
                     E entity = extractEntity.apply(line);
                     super.save(entity);
-                } catch (NumberFormatException | ArrayIndexOutOfBoundsException | java.time.format.DateTimeParseException | ValidationException e) {
-                    ///prindem liniile corupte
-                    System.err.println("Linie corupta ignorata in " + fileName + " la linia " + lineNumber + ". Motiv: " + e.getMessage());
+                } catch (ValidationException | NumberFormatException | ArrayIndexOutOfBoundsException | java.time.format.DateTimeParseException e) {
+
+                    System.err.println("Linie corupta ignorata in " + fileName + " la linia " + (i + 1) + ". Motiv: " + e.getMessage());
                 }
-            }
-        } catch (FileNotFoundException e) {
+            });
+        } catch (java.nio.file.NoSuchFileException e) {
             System.out.println("Fisierul " + fileName + " nu exista; repository gol.");
         } catch (IOException e) {
             throw new RepositoryException("Eroare la citirea fisierului " + fileName, e);
@@ -64,11 +64,15 @@ public class FileRepository<ID, E extends Entity<ID>> extends InMemoryRepository
      * @throws RuntimeException if the file cannot be written
      */
     private void writeToFile() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            for (E entity : findAll()) {
-                writer.write(createEntityAsString.apply(entity));
-                writer.newLine();
-            }
+        java.nio.file.Path path = java.nio.file.Paths.get(fileName);
+        try {
+            java.util.List<String> linii = java.util.stream.StreamSupport
+                    .stream(findAll().spliterator(), false)
+                    .map(createEntityAsString) // REFERINTA LA METODA
+                    .collect(java.util.stream.Collectors.toList());
+
+            // Cerinta: scriere cu Files.write
+            java.nio.file.Files.write(path, linii);
         } catch (IOException e) {
             throw new RepositoryException("Eroare la scrierea fisierului " + fileName, e);
         }
@@ -84,12 +88,12 @@ public class FileRepository<ID, E extends Entity<ID>> extends InMemoryRepository
      * @throws IllegalArgumentException                   if the given entity is null.
      */
     @Override
-    public E save(E entity) {
+    public java.util.Optional<E> save(E entity) {
         if (entity == null) {
             throw new IllegalArgumentException("Entitatea nu poate fi null!");
         }
-        E result = super.save(entity);
-        if (result == null)
+        java.util.Optional<E> result = super.save(entity);
+        if (result.isEmpty())
             writeToFile();
         return result;
     }
@@ -100,12 +104,12 @@ public class FileRepository<ID, E extends Entity<ID>> extends InMemoryRepository
      * @return the removed entity or null if there is no entity with the given id
      */
     @Override
-    public E delete(ID id) {
+    public java.util.Optional<E> delete(ID id) {
         if (id == null) {
             throw new IllegalArgumentException("ID-ul nu poate fi null!");
         }
-        E result = super.delete(id);
-        if (result != null)
+        java.util.Optional<E> result = super.delete(id);
+        if (result.isPresent())
             writeToFile();
         return result;
     }
@@ -120,9 +124,9 @@ public class FileRepository<ID, E extends Entity<ID>> extends InMemoryRepository
      * @throws domain.validators.ValidationException if the entity is not valid.
      */
     @Override
-    public E update(E entity) {
-        E result = super.update(entity);
-        if (result == null)
+    public java.util.Optional<E> update(E entity) {
+        java.util.Optional<E> result = super.update(entity);
+        if (result.isEmpty())
             writeToFile();
         return result;
     }

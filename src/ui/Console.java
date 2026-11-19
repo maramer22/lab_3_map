@@ -203,6 +203,9 @@ public class Console {
 
 
     }
+    public static void printeazaUserFrumos(User u) {
+        System.out.println("ID: " + u.getID() + ", Nume: " + u.getLastName() + ", Prenume: " + u.getFirstName());
+    }
 
     private void filterUsersAndUi(){
         System.out.println("Introdu cu ce litera/prefix sa inceapa prenumele: ");
@@ -216,7 +219,8 @@ public class Console {
         Iterable<User> rezultate = userService.filterUsers(filtruCombinat);
 
         System.out.println("Rezultatele cautarii: ");
-        rezultate.forEach(u-> System.out.println("ID: " + u.getID() + ",Nume: " + u.getLastName() + ", Prenume: " + u.getFirstName()));
+        //referinta la metoda statica
+        rezultate.forEach(Console::printeazaUserFrumos);
     }
 }
 

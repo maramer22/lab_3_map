@@ -15,13 +15,14 @@ import domain.validators.ValidationException;
  */
 public interface Repository<ID, E extends Entity<ID>> {
     /**
-     * finds and returns an entity based on its ID
+     * finds and returns an entity based on its ID using Optional
      *
      * @param id the identifier of the entity to be searched; must not be null
      * @return the entity with the specified ID, or null if there is no entity with the given ID
      * @throws IllegalArgumentException if the given id is null
      */
-    E findOne(ID id); //returneaza entitatea daca o gaseste in memorie, daca nu exista utilizator cu acel id returneaza null
+    java.util.Optional<E> findOne(ID id);
+
     /**
      * retrieves all entities stored in the repository
      *
@@ -37,7 +38,7 @@ public interface Repository<ID, E extends Entity<ID>> {
      * @throws ValidationException      if the entity is not valid according to the business rules
      * @throws IllegalArgumentException if the given entity is null
      */
-    E save(E entity) throws ValidationException; // primeste un obiect, daca respecta toate regulile se salveaza si returneaza null, daaca id ul este deja luat, returneaza inapoi entitatea pe care am incercat sa o introducem
+    java.util.Optional<E> save(E entity) throws ValidationException; // primeste un obiect, daca respecta toate regulile se salveaza si returneaza null, daaca id ul este deja luat, returneaza inapoi entitatea pe care am incercat sa o introducem
     /**
      * deletes and returns an entity based on its ID
      *
@@ -45,7 +46,7 @@ public interface Repository<ID, E extends Entity<ID>> {
      * @return the removed entity, or null if there is no entity with the given ID
      * @throws IllegalArgumentException if the given id is null
      */
-    E delete(ID id);//returneaza utilizatorul pe care tocmai l am sters, dar daca id ul nu exista returneaza null
+    java.util.Optional<E> delete(ID id);
 
     /**
      * updates an existing entity in the repository
@@ -56,7 +57,7 @@ public interface Repository<ID, E extends Entity<ID>> {
      * @throws ValidationException      if the updated entity is not valid
      * @throws IllegalArgumentException if the given entity is null
      */
-    E update(E entity) throws ValidationException; //returneaza null daca s a actualizat si entitatea daca id ul nu exista
+    java.util.Optional<E> update(E entity) throws ValidationException;
 
     /**
      * @param p the condition that the returned entities satisfy

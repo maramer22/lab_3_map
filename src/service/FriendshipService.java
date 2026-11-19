@@ -32,19 +32,15 @@ public class FriendshipService {
      * @throws domain.validators.ValidationException if the friendship is invalid (e.g., a user befriending themselves)
      */
     public void addFriendship(Long idUser1, Long idUser2){
-        User u1 = userRepository.findOne(idUser1);
-        User u2 = userRepository.findOne(idUser2);
-
-        if(u1 == null || u2 == null){
-            throw new IllegalArgumentException("Utilizatorul/Utilizatorii nu sunt in baza de date!");
-        }
+        User u1 = userRepository.findOne(idUser1)
+                .orElseThrow(() -> new IllegalArgumentException("Userul 1 inca nu este in baza de date!"));
+        User u2 = userRepository.findOne(idUser2)
+                .orElseThrow(() -> new IllegalArgumentException("Userul 2 inca nu este in baza de date!"));
         Friendship friendship = new Friendship(idUser1, idUser2, java.time.LocalDateTime.now());
 
-        Friendship result = friendshipRepository.save(friendship);
-
-        if(result != null){
-            throw new IllegalArgumentException("O prietenie cu acest id exista deja!!");
-        }
+        friendshipRepository.save(friendship).ifPresent(f -> {
+            throw new IllegalArgumentException("O prietenie intre acesti utilizatori exista deja!");
+        });
     }
     /**
      * removes an existing friendship between two users
@@ -55,11 +51,9 @@ public class FriendshipService {
      */
     public void removeFriendship(Long idUser1, Long idUser2) {
         Tuple<Long, Long> id = new Tuple<>(idUser1, idUser2);
-        Friendship result = friendshipRepository.delete(id);
 
-        if (result == null) {
-            throw new IllegalArgumentException("Nu exista nicio prietenie intre acesti utilizatori!");
-        }
+        friendshipRepository.delete(id)
+                .orElseThrow(()-> new IllegalArgumentException("Nu exista nicio prietenie intre acesti utilizatori!"));
     }
     /**
      * retrieves all friendships currently established in the network

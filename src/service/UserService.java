@@ -4,7 +4,7 @@ import domain.Friendship;
 import domain.Tuple;
 import domain.User;
 import repository.Repository;
-
+import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
 /**
@@ -38,10 +38,10 @@ public class UserService {
     public void addUser(Long id, String firstName, String lastName){
         User user = new User(firstName, lastName);
         user.setID(id);
-        User result = repository.save(user);
-        if (result != null){
-            throw new IllegalArgumentException("Exista deja un utilizator cu acest id!");
-        }
+
+        repository.save(user).ifPresent(u -> {
+            throw new IllegalArgumentException("Exista deja un user cu acest id!");
+        });
     }
     /**
      * removes a user from the network based on their ID
@@ -52,21 +52,16 @@ public class UserService {
      * @throws IllegalArgumentException if no user exists with the given ID
      */
     public void removeUser(Long id){
-        List<Tuple<Long, Long>> friendshipsToDelete = new ArrayList<>();
-        for (Friendship f : friendshipRepository.findAll()) {
-            if (f.getIdUser1().equals(id) || f.getIdUser2().equals(id)) {
-                friendshipsToDelete.add(f.getID());
-            }
-        }
+        //mai inati stergem prieteniile aperente, abia supa usreul
+        List<Tuple<Long, Long>> friendshipsToDelete = getFriendshipStream()
+                .filter(f -> f.getIdUser1().equals(id) || f.getIdUser2().equals(id))
+                .map(Friendship::getID)
+                .collect(java.util.stream.Collectors.toList());
+        //metoda de instanta a unui obiect anume
+        friendshipsToDelete.forEach(friendshipRepository::delete);
 
-        for (Tuple<Long, Long> fId : friendshipsToDelete) {
-            friendshipRepository.delete(fId);
-        }
-
-        User user = repository.delete(id);
-        if(user == null){
-            throw new IllegalArgumentException("Nu exista utilizator de sters!");
-        }
+        repository.delete(id)
+                .orElseThrow(() -> new IllegalArgumentException("Nu exista utilizator de sters!"));
     }
     /**
      * retrieves all users currently registered in the network
@@ -85,6 +80,30 @@ public class UserService {
      */
     public Iterable<User> filterUsers(java.util.function.Predicate<User> filter) {
         return repository.findAll(filter);
+    }
+
+    /**
+     * Returneaza lista de prieteni a unui utilizator, ordonata alfabetic.
+     * @param userId ID-ul utilizatorului
+     * @return o lista de utilizatori (prietenii)
+     */
+    public List<User> getPrieteniiUnuiUtilizator(Long userId) {
+        return getFriendshipStream()
+                .filter(f -> f.getIdUser1().equals(userId) || f.getIdUser2().equals(userId))
+                .map(f -> f.getIdUser1().equals(userId) ? f.getIdUser2() : f.getIdUser1())
+                .map(idPrieten -> repository.findOne(idPrieten)
+                        .orElseThrow(() -> new IllegalArgumentException("Prietenul cu ID-ul " + idPrieten + " nu exista!")))
+                .sorted(Comparator.comparing(User::getLastName).thenComparing(User::getFirstName))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+    }
+
+    /**
+     * takes the friendships from the memory and applies .spliterator() in order for us to fork with streams
+     * @return
+     */
+    private java.util.stream.Stream<Friendship> getFriendshipStream() {
+        //false - pt ca vrem el unul dupa altul
+        return java.util.stream.StreamSupport.stream(friendshipRepository.findAll().spliterator(), false);
     }
 
 }

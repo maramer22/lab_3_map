@@ -33,20 +33,17 @@ public class CommunityService {
     private Map<Long, List<Long>> buildGraph() {
         Map<Long, List<Long>> graph = new HashMap<>();
 
-        for (User user : userService.getAllUsers()) {
-            graph.put(user.getID(), new ArrayList<>());
-        }
+        userService.getAllUsers().forEach(user -> graph.put(user.getID(), new ArrayList<>()));
 
-        for (Friendship f : friendshipService.getAllFriendships()) {
+        friendshipService.getAllFriendships().forEach(f -> {
             Long u1 = f.getIdUser1();
             Long u2 = f.getIdUser2();
-
-            // Graful este neorientat
             if (graph.containsKey(u1) && graph.containsKey(u2)) {
                 graph.get(u1).add(u2);
                 graph.get(u2).add(u1);
             }
-        }
+        });
+
         return graph;
     }
 
@@ -58,12 +55,11 @@ public class CommunityService {
         if (currentCommunity != null) {
             currentCommunity.add(node);
         }
-        for (Long neighbor : graph.get(node)) {
-            if (!visited.contains(neighbor)) {
-                dfs(neighbor, visited, graph, currentCommunity);
-            }
-        }
+        graph.get(node).stream()
+                .filter(neighbor -> !visited.contains(neighbor))
+                .forEach(neighbor -> dfs(neighbor, visited, graph, currentCommunity));
     }
+
 
     /**
      * Calculates the number of separate communities (connected components) in the network
@@ -71,17 +67,7 @@ public class CommunityService {
      * @return the total number of communities
      */
     public int getNumberOfCommunities() {
-        Map<Long, List<Long>> graph = buildGraph();
-        Set<Long> visited = new HashSet<>();
-        int count = 0;
-
-        for (Long userId : graph.keySet()) {
-            if (!visited.contains(userId)) {
-                count++;
-                dfs(userId, visited, graph, null);
-            }
-        }
-        return count;
+        return getAllCommunities().size();
     }
 
     /**
@@ -92,16 +78,15 @@ public class CommunityService {
     private List<List<Long>> getAllCommunities() {
         Map<Long, List<Long>> graph = buildGraph();
         Set<Long> visited = new HashSet<>();
-        List<List<Long>> communities = new ArrayList<>();
 
-        for (Long userId : graph.keySet()) {
-            if (!visited.contains(userId)) {
-                List<Long> currentCommunity = new ArrayList<>();
-                dfs(userId, visited, graph, currentCommunity);
-                communities.add(currentCommunity);
-            }
-        }
-        return communities;
+        return graph.keySet().stream()
+                .filter(userId -> !visited.contains(userId))
+                .map(userId -> {
+                    List<Long> currentCommunity = new ArrayList<>();
+                    dfs(userId, visited, graph, currentCommunity);
+                    return currentCommunity;
+                })
+                .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -111,23 +96,15 @@ public class CommunityService {
      */
     public List<Long> getMostSociableCommunity() {
         Map<Long, List<Long>> graph = buildGraph();
-        List<List<Long>> communities = getAllCommunities();
-
-        List<Long> mostSociableCommunity = new ArrayList<>();
-        int maxPathLength = -1;
-
-        for (List<Long> community : communities) {
-            for (Long startNode : community) {
-                List<Long> currentMaxPath = new ArrayList<>();
-                dfsLongestPath(startNode, new HashSet<>(), graph, new ArrayList<>(), currentMaxPath);
-
-                if (currentMaxPath.size() > maxPathLength) {
-                    maxPathLength = currentMaxPath.size();
-                    mostSociableCommunity = currentMaxPath;
-                }
-            }
-        }
-        return mostSociableCommunity;
+        return getAllCommunities().stream()
+                .flatMap(Collection::stream) // REFERINTA LA METODA
+                .map(startNode -> {
+                    List<Long> currentMaxPath = new ArrayList<>();
+                    dfsLongestPath(startNode, new HashSet<>(), graph, new ArrayList<>(), currentMaxPath);
+                    return currentMaxPath;
+                })
+                .max(Comparator.comparingInt(List::size)) // REFERINTA LA METODA
+                .orElse(new ArrayList<>());
     }
 
     /**
@@ -143,13 +120,9 @@ public class CommunityService {
             maxPath.addAll(currentPath);
         }
 
-        for (Long neighbor : graph.get(current)) {
-            if (!visited.contains(neighbor)) {
-                dfsLongestPath(neighbor, visited, graph, currentPath, maxPath);
-            }
-        }
-
-        // Backtrack
+        graph.get(current).stream()
+                .filter(neighbor -> !visited.contains(neighbor))
+                .forEach(neighbor -> dfsLongestPath(neighbor, visited, graph, currentPath, maxPath));
         visited.remove(current);
         currentPath.remove(currentPath.size() - 1);
     }

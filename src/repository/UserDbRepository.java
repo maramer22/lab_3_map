@@ -1,6 +1,7 @@
 package repository;
 import domain.User;
 import domain.validators.Validator;
+import java.util.Optional;
 /**
  * database repository implementation for User entities
  */
@@ -27,7 +28,7 @@ public class UserDbRepository implements Repository<Long, User> {
      * @throws UnsupportedOperationException because database persistence is not yet implemented
      */
     @Override
-    public User findOne(Long id) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
+    public java.util.Optional<User> findOne(Long id) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
     /**
      * @throws UnsupportedOperationException because database persistence is not yet implemented
      */
@@ -37,15 +38,15 @@ public class UserDbRepository implements Repository<Long, User> {
      * @throws UnsupportedOperationException because database persistence is not yet implemented
      */
     @Override
-    public User save(User entity) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
+    public java.util.Optional<User> save(User entity) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
     /**
      * @throws UnsupportedOperationException because database persistence is not yet implemented
      */
     @Override
-    public User delete(Long id) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
+    public java.util.Optional<User> delete(Long id) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
     /**
      * @throws UnsupportedOperationException because database persistence is not yet implemented
      */
     @Override
-    public User update(User entity) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
+    public java.util.Optional<User> update(User entity) { throw new UnsupportedOperationException("Metoda neimplementata inca"); }
 }
